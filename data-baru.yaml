@@ -1,0 +1,560 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 10
+names:
+  - DAUN BANDOTAN
+  - DAUN BINAHONG
+  - DAUN JAMBU
+  - DAUN JAWER KOTOK
+  - DAUN KEMANGI
+  - DAUN KOREJAT
+  - DAUN SALAM
+  - DAUN SIRIH
+  - DAUN SIRSAK
+  - DAUN SURUHAN
+
+info:
+  DAUN BANDOTAN:
+    gambar: "static/assets/bandotan.jpg"
+    components:
+      - Flavonoid
+      - Alkaloid
+      - Senyawa antibakteri
+    benefits:
+      - Bisul dan luka bernanah
+      - Jerawat meradang
+      - Kurap dan infeksi jamur kulit
+    recipes:
+      Obat bisul dan luka bernanah:
+        ingredients:
+          - 5 lembar daun bandotan segar
+          - Kain bersih
+        steps:
+          - Cuci bersih daun bandotan.
+          - Tumbuk daun hingga halus seperti bubur.
+          - Tempelkan pada bisul atau luka bernanah.
+          - Balut dengan kain bersih selama 15-20 menit.
+          - Ulangi 2-3 kali sehari.
+      
+      Obat jerawat meradang:
+        ingredients:
+          - 3 lembar daun bandotan segar
+          - Kapas
+        steps:
+          - Cuci bersih daun bandotan.
+          - Tumbuk daun hingga halus.
+          - Oleskan pada jerawat yang meradang menggunakan kapas.
+          - Biarkan selama 15 menit, lalu bilas dengan air hangat.
+          - Gunakan setiap malam sebelum tidur.
+      
+      Obat kurap dan infeksi jamur kulit:
+        ingredients:
+          - 7 lembar daun bandotan segar
+          - Kain bersih
+        steps:
+          - Cuci bersih daun bandotan.
+          - Tumbuk daun hingga halus.
+          - Tempelkan pada area kulit yang terkena kurap.
+          - Diamkan selama 20 menit, lalu bilas.
+          - Ulangi 2 kali sehari hingga sembuh.
+
+  DAUN BINAHONG:
+    gambar: "static/assets/binahong.jpg"
+    components:
+      - Flavonoid
+      - Alkaloid
+      - Terpenoid
+      - Saponin
+    benefits:
+      - Luka sayat dan luka bakar
+      - Luka diabetes
+      - Bekas operasi caesar
+      - Keputihan
+    recipes:
+      Obat luka sayat dan luka bakar:
+        ingredients:
+          - 7 lembar daun binahong segar
+          - Kain kasa steril
+        steps:
+          - Cuci bersih daun binahong.
+          - Tumbuk daun hingga halus.
+          - Tempelkan pada luka sayat atau luka bakar.
+          - Tutup dengan kain kasa steril.
+          - Ganti 2 kali sehari hingga luka kering.
+      
+      Obat luka diabetes:
+        ingredients:
+          - 10 lembar daun binahong segar
+          - 200 ml air
+        steps:
+          - Cuci bersih daun binahong.
+          - Rebus dengan 200 ml air selama 15 menit.
+          - Minum ramuan 2 kali sehari (pagi dan sore).
+          - Tumbuk daun sisa rebusan, tempelkan pada luka.
+          - Lakukan rutin hingga luka membaik.
+      
+      Mempercepat penyembuhan bekas operasi caesar:
+        ingredients:
+          - 10 lembar daun binahong segar
+          - 250 ml air
+        steps:
+          - Rebus daun binahong dengan air selama 15 menit.
+          - Minum ramuan hangat 2 kali sehari.
+          - Dapat dikombinasi dengan kompres daun yang ditumbuk pada bekas jahitan.
+      
+      Obat keputihan:
+        ingredients:
+          - 10 lembar daun binahong
+          - 300 ml air
+        steps:
+          - Rebus daun binahong dengan air selama 15 menit.
+          - Saring dan minum air rebusan 2 kali sehari.
+          - Minum rutin selama 1-2 minggu.
+
+  DAUN JAMBU:
+    gambar: "static/assets/daun jambu.jpg"
+    components:
+      - Tannin
+      - Triterpen
+      - Flavonoid (Quercetin)
+      - Saponin
+      - Asam ursolat
+    benefits:
+      - Diare dan mencret
+      - Diabetes dan gula darah tinggi
+      - Kolesterol tinggi
+      - Batuk dan flu
+      - Sariawan
+    recipes:
+      Obat diare dan mencret:
+        ingredients:
+          - 7 lembar daun jambu biji muda
+          - 200 ml air
+          - Garam secukupnya
+        steps:
+          - Cuci bersih daun jambu biji.
+          - Rebus dengan air dan sejumput garam selama 15 menit.
+          - Saring dan minum air rebusan selagi hangat.
+          - Minum 3 kali sehari hingga diare berhenti.
+      
+      Obat diabetes dan gula darah tinggi:
+        ingredients:
+          - 5 lembar daun jambu biji
+          - 250 ml air
+        steps:
+          - Cuci bersih daun jambu biji.
+          - Rebus dengan air selama 10 menit.
+          - Saring dan minum 30 menit sebelum makan.
+          - Konsumsi 2-3 kali sehari secara rutin.
+      
+      Obat kolesterol tinggi:
+        ingredients:
+          - 10 lembar daun jambu biji
+          - 300 ml air
+        steps:
+          - Rebus daun jambu biji dengan air selama 15 menit.
+          - Saring dan minum 1 gelas setiap pagi sebelum sarapan.
+          - Konsumsi rutin selama 1 bulan.
+      
+      Obat batuk dan flu:
+        ingredients:
+          - 5 lembar daun jambu biji
+          - 200 ml air
+          - Madu 1 sendok makan
+        steps:
+          - Rebus daun jambu biji dengan air selama 10 menit.
+          - Saring dan tambahkan madu.
+          - Minum hangat 2-3 kali sehari.
+      
+      Obat sariawan:
+        ingredients:
+          - 5 lembar daun jambu biji
+          - 200 ml air
+        steps:
+          - Rebus daun jambu biji dengan air selama 10 menit.
+          - Gunakan air rebusan untuk berkumur 3-4 kali sehari.
+          - Dapat juga diminum untuk mempercepat penyembuhan.
+
+  DAUN JAWER KOTOK:
+    gambar: "static/assets/jawer kotok.jpg"
+    components:
+      - Alkaloid
+      - Steroid
+      - Tannin
+      - Saponin
+      - Flavonoid
+    benefits:
+      - Batuk berdahak
+      - Ambeien/wasir
+      - Maag dan sakit perut
+      - Demam tinggi
+      - Susah makan/nafsu makan hilang
+    recipes:
+      Obat batuk berdahak:
+        ingredients:
+          - 5 lembar daun jawer kotok
+          - 200 ml air
+          - 1 sendok makan madu
+        steps:
+          - Rebus daun jawer kotok dengan air selama 10 menit.
+          - Saring dan tambahkan madu.
+          - Minum hangat 3 kali sehari setelah makan.
+      
+      Obat ambeien/wasir:
+        ingredients:
+          - 7 lembar daun jawer kotok segar
+          - 250 ml air
+        steps:
+          - Rebus daun jawer kotok dengan air selama 15 menit.
+          - Saring dan minum 2 kali sehari (pagi dan malam).
+          - Konsumsi rutin selama 1-2 minggu.
+      
+      Obat maag dan sakit perut:
+        ingredients:
+          - 5 lembar daun jawer kotok
+          - 200 ml air
+          - Madu secukupnya
+        steps:
+          - Rebus daun dengan air selama 10 menit.
+          - Saring, tambahkan madu.
+          - Minum hangat 30 menit sebelum makan, 2 kali sehari.
+      
+      Obat demam tinggi:
+        ingredients:
+          - 7 lembar daun jawer kotok segar
+          - Kain bersih
+        steps:
+          - Cuci bersih daun jawer kotok.
+          - Tumbuk daun hingga halus.
+          - Tempelkan pada dahi dan kompres selama 15-20 menit.
+          - Ulangi setiap 3-4 jam hingga demam turun.
+      
+      Penambah nafsu makan:
+        ingredients:
+          - 5 lembar daun jawer kotok
+          - 200 ml air
+          - Madu 1 sendok makan
+        steps:
+          - Rebus daun dengan air selama 10 menit.
+          - Saring dan tambahkan madu.
+          - Minum 30 menit sebelum makan, 2 kali sehari.
+
+  DAUN KEMANGI:
+    gambar: "static/assets/kemangi.jpg"
+    components:
+      - Flavonoid
+      - Saponin
+      - Tannin
+    benefits:
+      - Bau mulut
+      - Masuk angin dan kembung
+      - Stress dan susah tidur
+    recipes:
+      Obat bau mulut:
+        ingredients:
+          - 7 lembar daun kemangi segar
+          - 200 ml air
+        steps:
+          - Rebus daun kemangi dengan air selama 5 menit.
+          - Saring dan gunakan air rebusan untuk berkumur.
+          - Berkumur 2-3 kali sehari setelah makan.
+          - Dapat juga mengunyah 3-5 lembar daun kemangi segar.
+      
+      Obat masuk angin dan kembung:
+        ingredients:
+          - 10 lembar daun kemangi segar
+          - 200 ml air
+          - Madu secukupnya
+        steps:
+          - Rebus daun kemangi dengan air selama 7 menit.
+          - Saring, tambahkan madu.
+          - Minum hangat 2 kali sehari.
+      
+      Obat stress dan susah tidur:
+        ingredients:
+          - 10 lembar daun kemangi segar
+          - 250 ml air
+        steps:
+          - Rebus daun kemangi dengan air selama 10 menit.
+          - Saring dan minum hangat sebelum tidur.
+          - Lakukan rutin setiap malam untuk hasil optimal.
+
+  DAUN KOREJAT:
+    gambar: "static/assets/korejat.jpg"
+    components:
+      - Flavonoid
+      - Alkaloid
+      - Saponin
+      - Polyteros
+    benefits:
+      - Sakit kepala dan migrain
+      - Asma dan sesak napas
+      - Batuk kering
+    recipes:
+      Obat sakit kepala dan migrain:
+        ingredients:
+          - 5 lembar daun korejat segar
+          - Kain bersih
+        steps:
+          - Cuci bersih daun korejat.
+          - Tumbuk daun hingga halus (hati-hati, jangan kena mata).
+          - Tempelkan pada dahi dan pelipis.
+          - Diamkan selama 15-20 menit.
+          - Bilas dengan air bersih.
+      
+      Obat asma dan sesak napas:
+        ingredients:
+          - 7 lembar daun korejat
+          - 250 ml air
+          - Madu 1 sendok makan
+        steps:
+          - Rebus daun korejat dengan air selama 10 menit.
+          - Saring dan tambahkan madu.
+          - Minum hangat 2 kali sehari (pagi dan malam).
+          - Konsumsi rutin untuk mengurangi frekuensi sesak napas.
+      
+      Obat batuk kering:
+        ingredients:
+          - 5 lembar daun korejat
+          - 200 ml air
+          - Madu 1 sendok makan
+        steps:
+          - Rebus daun dengan air selama 8 menit.
+          - Saring, tambahkan madu.
+          - Minum hangat 3 kali sehari setelah makan.
+
+  DAUN SALAM:
+    gambar: "static/assets/salam.jpg"
+    components:
+      - Flavonoid
+      - Alkaloid
+      - Tannin
+      - Fenol
+      - Saponin
+      - Minyak atsiri
+    benefits:
+      - Darah tinggi/hipertensi
+      - Asam urat
+      - Kolesterol tinggi
+      - Diabetes
+      - Rematik dan nyeri sendi
+    recipes:
+      Obat darah tinggi/hipertensi:
+        ingredients:
+          - 10 lembar daun salam segar
+          - 300 ml air
+        steps:
+          - Cuci bersih daun salam.
+          - Rebus dengan 300 ml air hingga tersisa 200 ml.
+          - Saring dan minum hangat setiap pagi sebelum sarapan.
+          - Konsumsi rutin untuk menjaga tekanan darah stabil.
+      
+      Obat asam urat:
+        ingredients:
+          - 15 lembar daun salam
+          - 400 ml air
+        steps:
+          - Rebus daun salam dengan air hingga tersisa 200 ml.
+          - Saring dan minum 2 kali sehari (pagi dan malam).
+          - Konsumsi rutin selama 2 minggu untuk hasil optimal.
+      
+      Obat kolesterol tinggi:
+        ingredients:
+          - 10 lembar daun salam
+          - 300 ml air
+        steps:
+          - Rebus daun salam dengan air selama 15 menit.
+          - Saring dan minum 1 gelas setiap pagi.
+          - Konsumsi rutin selama 1 bulan.
+      
+      Obat diabetes:
+        ingredients:
+          - 7 lembar daun salam
+          - 250 ml air
+        steps:
+          - Rebus daun salam dengan air selama 10 menit.
+          - Saring dan minum 2 kali sehari sebelum makan.
+          - Konsumsi rutin untuk membantu mengontrol gula darah.
+      
+      Obat rematik dan nyeri sendi:
+        ingredients:
+          - 10 lembar daun salam
+          - 300 ml air
+        steps:
+          - Rebus daun salam dengan air selama 15 menit.
+          - Saring dan minum 2 kali sehari.
+          - Dapat juga ditumbuk dan dikompreskan pada sendi yang nyeri.
+
+  DAUN SIRIH:
+    gambar: "static/assets/sirih.jpg"
+    components:
+      - Flavonoid
+      - Polifenol
+      - Tannin
+      - Minyak atsiri
+    benefits:
+      - Gigi berlubang dan sakit gigi
+      - Bau mulut
+      - Keputihan
+      - Mimisan
+      - Luka dan gatal-gatal
+    recipes:
+      Obat gigi berlubang dan sakit gigi:
+        ingredients:
+          - 5 lembar daun sirih
+          - 200 ml air
+        steps:
+          - Rebus daun sirih dengan air selama 10 menit.
+          - Gunakan air rebusan untuk berkumur selagi hangat.
+          - Berkumur selama 3-5 menit, ulangi 3-4 kali sehari.
+          - Dapat juga mengunyah daun sirih langsung pada gigi yang sakit.
+      
+      Obat bau mulut:
+        ingredients:
+          - 3 lembar daun sirih segar
+          - 200 ml air
+        steps:
+          - Rebus daun sirih dengan air selama 5 menit.
+          - Gunakan air rebusan untuk berkumur setelah makan.
+          - Atau kunyah 2-3 lembar daun sirih segar setelah makan.
+      
+      Obat keputihan:
+        ingredients:
+          - 10 lembar daun sirih
+          - 500 ml air
+        steps:
+          - Rebus daun sirih dengan air selama 15 menit.
+          - Saring dan gunakan air rebusan (suhu hangat) untuk cebok.
+          - Lakukan 2 kali sehari hingga keputihan berkurang.
+      
+      Obat mimisan:
+        ingredients:
+          - 2 lembar daun sirih segar
+        steps:
+          - Cuci bersih daun sirih.
+          - Gulung daun sirih dan masukkan ke lubang hidung yang mimisan.
+          - Diamkan selama 10-15 menit hingga darah berhenti.
+      
+      Obat luka dan gatal-gatal:
+        ingredients:
+          - 7 lembar daun sirih
+          - 300 ml air
+        steps:
+          - Rebus daun sirih dengan air selama 10 menit.
+          - Gunakan air rebusan untuk mencuci luka atau area yang gatal.
+          - Dapat juga ditumbuk dan ditempelkan langsung pada luka.
+
+  DAUN SIRSAK:
+    gambar: "static/assets/sirsak.jpg"
+    components:
+      - Asetogenin
+      - Alkaloid
+      - Flavonoid
+      - Sterol
+    benefits:
+      - Kanker dan tumor
+      - Diabetes
+      - Asam urat
+      - Kolesterol tinggi
+      - Insomnia/susah tidur
+    recipes:
+      Obat kanker dan tumor:
+        ingredients:
+          - 10 lembar daun sirsak
+          - 400 ml air
+        steps:
+          - Cuci bersih daun sirsak.
+          - Rebus dengan air hingga tersisa 200 ml (sekitar 20 menit).
+          - Saring dan minum 2 kali sehari (pagi dan malam).
+          - Konsumsi rutin minimal 1 bulan untuk hasil optimal.
+      
+      Obat diabetes:
+        ingredients:
+          - 7 lembar daun sirsak
+          - 300 ml air
+        steps:
+          - Rebus daun sirsak dengan air selama 15 menit.
+          - Saring dan minum 2 kali sehari sebelum makan.
+          - Konsumsi rutin untuk membantu menurunkan gula darah.
+      
+      Obat asam urat:
+        ingredients:
+          - 10 lembar daun sirsak
+          - 400 ml air
+        steps:
+          - Rebus daun sirsak hingga air tersisa setengahnya.
+          - Saring dan minum 2 kali sehari.
+          - Konsumsi rutin selama 2 minggu.
+      
+      Obat kolesterol tinggi:
+        ingredients:
+          - 10 lembar daun sirsak
+          - 300 ml air
+        steps:
+          - Rebus daun sirsak dengan air selama 15 menit.
+          - Saring dan minum setiap pagi sebelum sarapan.
+          - Konsumsi rutin selama 1 bulan.
+      
+      Obat insomnia/susah tidur:
+        ingredients:
+          - 7 lembar daun sirsak
+          - 250 ml air
+        steps:
+          - Rebus daun sirsak dengan air selama 10 menit.
+          - Saring dan minum hangat 1 jam sebelum tidur.
+          - Lakukan rutin setiap malam untuk hasil optimal.
+
+  DAUN SURUHAN:
+    gambar: "static/assets/suruhan.jpg"
+    components:
+      - Flavonoid
+      - Alkaloid
+      - Tannin
+      - Saponin
+    benefits:
+      - Jerawat
+      - Bisul
+      - Luka dan infeksi kulit
+    recipes:
+      Obat jerawat:
+        ingredients:
+          - 7 lembar daun suruhan segar
+          - Kapas atau kain bersih
+        steps:
+          - Cuci bersih daun suruhan.
+          - Tumbuk daun hingga halus seperti pasta.
+          - Oleskan pada area berjerawat menggunakan kapas.
+          - Diamkan selama 15-20 menit.
+          - Bilas dengan air hangat.
+          - Gunakan setiap malam sebelum tidur.
+      
+      Obat bisul:
+        ingredients:
+          - 10 lembar daun suruhan segar
+          - Kain bersih
+        steps:
+          - Cuci bersih daun suruhan.
+          - Tumbuk daun hingga halus.
+          - Tempelkan pada bisul dan tutup dengan kain bersih.
+          - Diamkan selama 20-30 menit.
+          - Ulangi 2-3 kali sehari hingga bisul pecah dan kering.
+      
+      Obat luka dan infeksi kulit:
+        ingredients:
+          - 7 lembar daun suruhan segar
+          - Kain kasa steril
+        steps:
+          - Cuci bersih daun suruhan.
+          - Tumbuk daun hingga halus.
+          - Tempelkan pada luka atau area yang terinfeksi.
+          - Tutup dengan kain kasa steril.
+          - Ganti 2 kali sehari hingga luka sembuh.
+
+roboflow: 
+workspace: paper1-9lfbs 
+project: scp-2-uguun 
+version: 3 
+license: CC BY 4.0 
+url: https://universe.roboflow.com/paper1-9lfbs/scp-2-uguun/dataset/3
