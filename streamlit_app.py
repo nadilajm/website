@@ -1,9 +1,8 @@
 import streamlit as st
-from ultralytics import YOLO
 from PIL import Image, ImageDraw
 import yaml
-import cv2
 import time
+import os
 
 # =====================================================
 # PAGE CONFIG
@@ -13,6 +12,11 @@ st.set_page_config(
     page_icon="🌿",
     layout="wide"
 )
+
+# =====================================================
+# CEK LINGKUNGAN (CLOUD / LOCAL)
+# =====================================================
+IS_CLOUD = "STREAMLIT_CLOUD" in os.environ
 
 # =====================================================
 # LOAD YAML
@@ -27,10 +31,11 @@ CLASS_NAMES = yaml_data["names"]
 CLASS_INFO = yaml_data["info"]
 
 # =====================================================
-# LOAD MODEL (DINAMIS)
+# LAZY LOAD YOLO MODEL (INI KUNCI FIX ERROR)
 # =====================================================
 @st.cache_resource
 def load_model(model_path):
+    from ultralytics import YOLO   # ⬅️ LAZY IMPORT
     return YOLO(model_path)
 
 MODEL_PATHS = {
@@ -40,7 +45,7 @@ MODEL_PATHS = {
 }
 
 # =====================================================
-# SIDEBAR NAVIGATION (TETAP SEPERTI AWAL)
+# SIDEBAR NAVIGATION (TETAP)
 # =====================================================
 st.sidebar.title("🌿 MENU")
 menu = st.sidebar.radio(
@@ -90,9 +95,9 @@ def detect_image(image: Image.Image, model):
 if menu == "🏠 Beranda":
     st.markdown("## 🌿 HerbaSmartAI")
     st.info("""
-    Sistem deteksi daun herbal berbasis **YOLOv8**
-    untuk menampilkan nama daun, kandungan, manfaat,
-    dan resep tradisional.
+    Sistem deteksi daun herbal berbasis **YOLO**
+    untuk menampilkan nama daun, kandungan,
+    manfaat, dan resep tradisional.
     """)
 
 # =====================================================
@@ -101,7 +106,6 @@ if menu == "🏠 Beranda":
 elif menu == "📷 Deteksi Gambar":
     st.title("📷 Deteksi Daun Herbal")
 
-    # 🔽 PILIH VARIAN YOLO (KHUSUS HALAMAN INI)
     yolo_choice = st.selectbox(
         "⚙️ Pilih Varian YOLO",
         list(MODEL_PATHS.keys())
@@ -110,7 +114,7 @@ elif menu == "📷 Deteksi Gambar":
     model = load_model(MODEL_PATHS[yolo_choice])
     st.caption(f"Model aktif: **{yolo_choice}**")
 
-    uploaded = st.file_uploader("Upload gambar daun", type=["jpg","png","jpeg"])
+    uploaded = st.file_uploader("Upload gambar daun", type=["jpg", "png", "jpeg"])
     camera = st.camera_input("Atau ambil foto")
 
     image = None
@@ -144,7 +148,12 @@ elif menu == "📷 Deteksi Gambar":
 elif menu == "🎥 Deteksi Webcam":
     st.title("🎥 Deteksi Real-Time")
 
-    # 🔽 PILIH VARIAN YOLO (KHUSUS HALAMAN INI)
+    if IS_CLOUD:
+        st.warning("🚫 Webcam tidak didukung di Streamlit Cloud")
+        st.stop()
+
+    import cv2  # ⬅️ BARU BOLEH DI SINI
+
     yolo_choice = st.selectbox(
         "⚙️ Pilih Varian YOLO",
         list(MODEL_PATHS.keys())
@@ -174,9 +183,11 @@ elif menu == "🎥 Deteksi Webcam":
                     x1, y1, x2, y2 = map(int, box)
                     cls_id = int(r.boxes.cls[i])
                     name = CLASS_NAMES[cls_id]
-                    cv2.rectangle(rgb, (x1,y1), (x2,y2), (0,255,0), 2)
-                    cv2.putText(rgb, name, (x1, y1-10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+                    cv2.rectangle(rgb, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(
+                        rgb, name, (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2
+                    )
 
             frame_slot.image(rgb, channels="RGB", use_container_width=True)
 
