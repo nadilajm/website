@@ -114,7 +114,6 @@ if menu == "🏠 Beranda":
     * **Manfaat Kesehatan:** Informasi khasiat untuk pengobatan alami.
     * **Pencarian Manfaat:** Cari daun berdasarkan gejala kesehatan Anda.
     """)
-    st.image("https://images.unsplash.com/photo-1515555230216-820c39d439bb?q=80&w=1000&auto=format&fit=crop", caption="Herbal Medicine")
 
 # =====================================================
 # HALAMAN: DETEKSI GAMBAR
