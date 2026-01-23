@@ -185,12 +185,26 @@ elif menu == "Deteksi Gambar":
                 for b in d["benefits"]:
                     st.write(f"- {b}")
 
-                if d["recipes"]:
-                    st.markdown("**🍵 Resep Tradisional:**")
-                    for k, v in d["recipes"].items():
-                        st.write(f"**{k.capitalize()}**:")
-                        for step in v:
-                            st.write(f"- {step}")
+                if info.get("recipes"):
+                    st.markdown("### 🍵 Resep Tradisional")
+                
+                    for title, recipe in info["recipes"].items():
+                        st.markdown(f"**{title}**")
+                
+                        ingredients = recipe.get("ingredients", [])
+                        if ingredients:
+                            st.markdown("**Bahan:**")
+                            for item in ingredients:
+                                st.write(f"- {item}")
+                
+                        steps = recipe.get("steps", [])
+                        if steps:
+                            st.markdown("**Cara Pembuatan:**")
+                            for i, step in enumerate(steps, 1):
+                                st.write(f"{i}. {step}")
+                
+                        st.markdown("---")
+
 
 # =====================================================
 # DETEKSI WEBCAM
