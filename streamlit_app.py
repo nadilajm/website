@@ -3,6 +3,8 @@ from ultralytics import YOLO
 from PIL import Image, ImageDraw, ImageFont
 import yaml
 import time
+import cv2
+import numpy as np
 
 # =====================================================
 # PAGE CONFIG
@@ -15,68 +17,94 @@ st.set_page_config(
 )
 
 # =====================================================
-# CSS STYLING
+# CSS STYLING (Tema Hijau Herbal)
 # =====================================================
 st.markdown("""
 <style>
+/* Background utama hijau */
 .stApp {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
+/* Container utama */
 .block-container {
     max-width: 1400px;
     padding: 3rem 2rem;
 }
 
+/* ===============================
+   SIDEBAR - HIJAU dengan TEKS PUTIH
+================================ */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #059669 0%, #047857 100%) !important;
 }
 
+section[data-testid="stSidebar"] > div:first-child {
+    background: transparent !important;
+}
+
 section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stRadio label,
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] span {
     color: white !important;
     font-weight: 700;
 }
 
-.card {
-    background: white;
+/* ===============================
+   AREA VISUALISASI - TERANG/PUTIH
+================================ */
+.card, .detect-card {
+    background: white !important;
     padding: 2rem;
     border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
     margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
 }
 
+/* Judul */
 h1, h2, h3 {
     color: white !important;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
-.card h1, .card h2, .card h3 {
+.card h1, .card h2, .card h3,
+.detect-card h1, .detect-card h2, .detect-card h3 {
     color: #111827 !important;
     text-shadow: none;
 }
 
+/* ===============================
+   INPUT & UPLOAD - HIJAU dengan TEKS PUTIH
+================================ */
 section[data-testid="stFileUploader"],
 section[data-testid="stCameraInput"] {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     padding: 2rem;
     border-radius: 24px;
     margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
 }
 
 .main label {
     color: white !important;
     font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
 
 section[data-testid="stFileUploader"] label,
 section[data-testid="stFileUploader"] span,
 section[data-testid="stFileUploader"] p,
-section[data-testid="stFileUploader"] small,
+section[data-testid="stFileUploader"] div,
+section[data-testid="stFileUploader"] small {
+    color: white !important;
+    font-weight: 600;
+}
+
 section[data-testid="stCameraInput"] label,
 section[data-testid="stCameraInput"] span,
 section[data-testid="stCameraInput"] p,
+section[data-testid="stCameraInput"] div,
 section[data-testid="stCameraInput"] small {
     color: white !important;
     font-weight: 600;
@@ -87,25 +115,60 @@ section[data-testid="stTextInput"] input {
     color: #111827 !important;
     border: 2px solid white !important;
     border-radius: 12px;
+    font-weight: 600;
 }
 
+section[data-testid="stTextInput"] input::placeholder {
+    color: #6b7280 !important;
+}
+
+.stSelectbox > div > div {
+    background: rgba(255,255,255,0.2) !important;
+    border: 2px solid white !important;
+    color: white !important;
+}
+
+/* Confidence badge */
+.confidence {
+    display: inline-block;
+    background: #047857;
+    color: white !important;
+    padding: 0.5rem 1.5rem;
+    border-radius: 999px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Button */
 .stButton > button {
     background: white !important;
     color: #047857 !important;
     border-radius: 12px;
     padding: 0.75rem 2rem;
     font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .stButton > button:hover {
     background: #f0fdf4 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
 }
 
+.stSuccess {
+    background: rgba(255,255,255,0.95) !important;
+    color: #047857 !important;
+    border-radius: 12px;
+}
+
+/* Hero section */
 .hero-title {
     font-size: 4rem;
     font-weight: bold;
     color: #639872;
-    text-shadow: 3px 3px 0 #0B6A43, 6px 6px 0 #0B6A43;
+    text-shadow: 
+        3px 3px 0 #0B6A43, 
+        6px 6px 0 #0B6A43;
     text-align: center;
     margin-bottom: 2rem;
 }
@@ -117,14 +180,12 @@ section[data-testid="stTextInput"] input {
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
 
-.upload-box {
-    background-color: #10b981;
-    padding: 1.5rem;
-    border-radius: 16px;
-    text-align: center;
-    color: white;
-    font-weight: 700;
-    margin-bottom: 1rem;
+/* Recipe accordion */
+.recipe-section {
+    background: #f0fdf4;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-top: 1rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -134,40 +195,31 @@ section[data-testid="stTextInput"] input {
 # =====================================================
 @st.cache_data
 def load_yaml():
-    try:
-        with open("data-baru.yaml", "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
-    except:
-        return {"names": [], "info": {}}
+    with open("data-baru.yaml", "r") as f:
+        return yaml.safe_load(f)
 
 yaml_data = load_yaml()
-class_names = yaml_data.get("names", [])
-class_info = yaml_data.get("info", {})
+class_names = yaml_data["names"]
+class_info = yaml_data["info"]
 
 # =====================================================
 # LOAD YOLO MODEL
 # =====================================================
 @st.cache_resource
 def load_model(path):
-    try:
-        return YOLO(path)
-    except:
-        return None
+    return YOLO(path)
 
 MODEL_PATHS = {
-    "Best Model": "best.pt",
     "YOLOv8n (Nano)": "models/bestnano.pt",
     "YOLOv8s (Small)": "models/bestsmall.pt",
-    "YOLOv8m (Medium)": "models/yolo_medium.pt"
+    "YOLOv8m (Medium)": "models/yolo_medium.pt",
+    "Best Model": "best.pt"
 }
 
 # =====================================================
-# DETECTION FUNCTION
+# DETECTION + DRAW BOUNDING BOX
 # =====================================================
 def detect_and_draw(model, image):
-    if model is None:
-        return image, [], 0
-    
     start = time.time()
     results = model.predict(image, verbose=False)
     infer_time = time.time() - start
@@ -190,6 +242,7 @@ def detect_and_draw(model, image):
             name = class_names[cls_id]
             info = class_info.get(name, {})
 
+            # Get recipes with conversion
             recipes_raw = info.get('recipes', {})
             converted_recipes = {}
             for benefit, recipe in recipes_raw.items():
@@ -207,40 +260,74 @@ def detect_and_draw(model, image):
                 "gambar": info.get("gambar", "")
             })
 
+            # Bounding box (PUTIH)
             x1, y1, x2, y2 = [int(c) for c in box]
             draw.rectangle([x1, y1, x2, y2], outline="white", width=4)
 
+            # Label
             label = f"{name} {conf:.1f}%"
-            try:
-                text_bbox = draw.textbbox((0, 0), label, font=font)
-                w = text_bbox[2] - text_bbox[0]
-                h = text_bbox[3] - text_bbox[1]
-            except:
-                w, h = 100, 20
+            text_bbox = draw.textbbox((0, 0), label, font=font)
+            w = text_bbox[2] - text_bbox[0]
+            h = text_bbox[3] - text_bbox[1]
 
-            draw.rectangle([x1, y1 - h - 6, x1 + w + 6, y1], fill="white")
-            draw.text((x1 + 3, y1 - h - 3), label, fill="#065f46", font=font)
+            draw.rectangle(
+                [x1, y1 - h - 6, x1 + w + 6, y1],
+                fill="white"
+            )
+            draw.text(
+                (x1 + 3, y1 - h - 3),
+                label,
+                fill="#065f46",
+                font=font
+            )
 
     return image, detections, infer_time
 
 # =====================================================
-# REMOVE DUPLICATES
+# WEBCAM DETECTION FUNCTION
 # =====================================================
-def remove_duplicate_detections(detections):
-    unique = {}
-    for d in detections:
-        if d['name'] not in unique:
-            unique[d['name']] = d
-    return list(unique.values())
+def detect_webcam():
+    cap = cv2.VideoCapture(0)
+    
+    stframe = st.empty()
+    stop_button = st.button("Stop Webcam")
+    
+    while cap.isOpened() and not stop_button:
+        ret, frame = cap.read()
+        if not ret:
+            break
+            
+        # Convert BGR to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Detect
+        results = model.predict(frame_rgb, verbose=False)
+        
+        for result in results:
+            boxes = result.boxes
+            if boxes is not None:
+                for i, box in enumerate(boxes.xyxy):
+                    x1, y1, x2, y2 = [int(x) for x in box]
+                    class_id = int(boxes.cls[i].item())
+                    class_name = class_names[class_id]
+                    
+                    # Draw bounding box
+                    cv2.rectangle(frame_rgb, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(frame_rgb, class_name, (x1, y1-10),
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        
+        stframe.image(frame_rgb, channels="RGB", use_container_width=True)
+    
+    cap.release()
 
 # =====================================================
-# SIDEBAR
+# SIDEBAR MENU
 # =====================================================
 with st.sidebar:
     st.markdown("### 🌿 MENU NAVIGASI")
     menu = st.radio(
         "",
-        ["🏠 Beranda", "📸 Deteksi Kamera", "📤 Deteksi Upload", "💊 Rekomendasi Manfaat"],
+        ["🏠 Beranda", "🔍 Deteksi Gambar", "📸 Deteksi Webcam", "💊 Rekomendasi Manfaat"],
         label_visibility="collapsed"
     )
 
@@ -248,280 +335,202 @@ with st.sidebar:
 # BERANDA
 # =====================================================
 if menu == "🏠 Beranda":
-    st.markdown('<h1 class="hero-title">🌿 HERBAL LEAF DETECTION</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="hero-title">🌿 DETEKSI DAUN HERBAL</h1>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="hero-content">
         <h2 style="color: #047857; text-align: center;">Sistem Deteksi Daun Herbal Berbasis Deep Learning</h2>
         <p style="color: #111827; text-align: center; font-size: 1.1rem; line-height: 1.8;">
-            <strong>HerbaSmartAI</strong> adalah website yang dirancang untuk membantu mengidentifikasi 
-            dan mengklasifikasikan daun herbal melalui deteksi gambar menggunakan teknologi 
-            <strong>YOLOv8 (You Only Look Once)</strong>.
+            Aplikasi ini menggunakan teknologi <strong>YOLOv8 (You Only Look Once)</strong> untuk mendeteksi 
+            berbagai jenis daun herbal secara real-time. Sistem ini dapat mengidentifikasi kandungan, 
+            manfaat kesehatan, dan memberikan rekomendasi resep pengobatan tradisional.
         </p>
         
         <hr style="border-color: #10b981; margin: 2rem 0;">
         
-        <h3 style="color: #047857;">✨ Fitur Utama:</h3>
+        <h3 style="color: #047857; margin-top: 2rem;">✨ Fitur Utama:</h3>
         <ul style="color: #111827; font-size: 1rem; line-height: 2;">
-            <li><strong>Deteksi Kamera:</strong> Ambil foto langsung dari kamera</li>
-            <li><strong>Deteksi Upload:</strong> Upload foto daun untuk analisis</li>
-            <li><strong>Informasi Lengkap:</strong> Kandungan, manfaat, dan resep pengobatan</li>
-            <li><strong>Rekomendasi:</strong> Cari daun berdasarkan manfaat kesehatan</li>
+            <li><strong>Deteksi Gambar:</strong> Upload foto daun untuk analisis instant</li>
+            <li><strong>Deteksi Real-time:</strong> Gunakan webcam untuk deteksi langsung</li>
+            <li><strong>Informasi Lengkap:</strong> Kandungan kimia, manfaat kesehatan, dan resep pengobatan</li>
+            <li><strong>Rekomendasi Cerdas:</strong> Cari daun herbal berdasarkan manfaat yang diinginkan</li>
         </ul>
         
         <h3 style="color: #047857; margin-top: 2rem;">🎯 Cara Menggunakan:</h3>
         <ol style="color: #111827; font-size: 1rem; line-height: 2;">
-            <li>Pilih menu di sidebar</li>
-            <li>Ambil foto atau upload gambar</li>
-            <li>Lihat hasil deteksi dan informasi lengkap</li>
-            <li>Klik tombol resep untuk detail pengobatan</li>
+            <li>Pilih menu di sidebar sesuai kebutuhan Anda</li>
+            <li>Upload gambar atau aktifkan webcam untuk deteksi</li>
+            <li>Lihat hasil deteksi beserta informasi lengkap daun herbal</li>
+            <li>Gunakan menu Rekomendasi untuk mencari berdasarkan manfaat</li>
         </ol>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.markdown("""
-    <div style="background: rgba(255,255,255,0.9); padding: 2rem; border-radius: 16px;">
-        <h3 style="color: #047857; text-shadow: none;">📖 About Us</h3>
-        <p style="color: #111827; font-size: 1rem; line-height: 1.8;">
-            HerbaSmartAI is a website designed to help identify and classify herbal leaves through 
-            image detection using YOLOv8 deep learning technology. We provide comprehensive information 
-            about medicinal plants including their chemical components, health benefits, and traditional 
-            healing recipes.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
 
 # =====================================================
-# DETEKSI KAMERA
+# DETEKSI GAMBAR
 # =====================================================
-elif menu == "📸 Deteksi Kamera":
-    st.title("📸 Deteksi Daun Herbal Menggunakan YOLOv8")
-    
-    model_choice = st.selectbox("Pilih Model YOLO", MODEL_PATHS.keys())
-    model = load_model(MODEL_PATHS[model_choice])
-    
-    if model is None:
-        st.error("❌ Model tidak dapat dimuat")
-        st.stop()
-    
-    st.markdown('<div class="upload-box">📸 Ambil foto daun herbal</div>', unsafe_allow_html=True)
-    
-    camera = st.camera_input("Ambil Foto", label_visibility="collapsed")
-    
-    if camera:
-        image = Image.open(camera).convert("RGB")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### Gambar Asli")
-            st.image(image, use_container_width=True)
-        
-        with st.spinner("🔄 Mendeteksi..."):
-            result_img, detections, infer_time = detect_and_draw(model, image.copy())
-        
-        with col2:
-            st.markdown("### Hasil Deteksi")
-            st.image(result_img, use_container_width=True)
-        
-        st.success(f"✅ Deteksi selesai dalam {infer_time:.3f} detik")
-        
-        if detections:
-            unique_detections = remove_duplicate_detections(detections)
-            
-            st.markdown("---")
-            st.markdown("### 📋 Nama Daun yang Terdeteksi")
-            
-            for idx, d in enumerate(unique_detections, 1):
-                st.markdown(f"""
-                <div style="background: white; padding: 1.5rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <h4 style="color: #047857; margin: 0;">🌿 {d['name']}</h4>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                col1, col2 = st.columns([1, 2])
-                
-                with col1:
-                    if d['gambar']:
-                        try:
-                            st.image(d['gambar'], use_container_width=True)
-                        except:
-                            st.info("📷 Gambar tidak tersedia")
-                
-                with col2:
-                    if d['components']:
-                        st.markdown("**🧪 Komponen:**")
-                        st.write(", ".join(d['components']))
-                    
-                    if d['benefits']:
-                        st.markdown("**💊 Manfaat:**")
-                        st.write(", ".join(d['benefits']))
-                    
-                    if d['recipes']:
-                        st.markdown("**📖 Resep Pengobatan:**")
-                        for benefit, recipe in d['recipes'].items():
-                            if st.button(f"📋 Resep: {benefit}", key=f"cam_{d['name']}_{benefit}_{idx}"):
-                                st.info(f"**Resep untuk {benefit}**")
-                                st.markdown("**🥣 Bahan:**")
-                                for bahan in recipe['bahan']:
-                                    st.write(f"• {bahan}")
-                                st.markdown("**👨‍🍳 Langkah:**")
-                                for i, langkah in enumerate(recipe['langkah'], 1):
-                                    st.write(f"{i}. {langkah}")
-                
-                st.markdown("---")
+elif menu == "🔍 Deteksi Gambar":
+    st.title("🔍 Deteksi Daun Herbal dari Gambar")
 
-# =====================================================
-# DETEKSI UPLOAD
-# =====================================================
-elif menu == "📤 Deteksi Upload":
-    st.title("📤 Deteksi Daun Herbal Menggunakan YOLOv8 (Upload)")
+    col1, col2 = st.columns([1, 2])
     
-    model_choice = st.selectbox("Pilih Model YOLO", MODEL_PATHS.keys())
-    model = load_model(MODEL_PATHS[model_choice])
-    
-    if model is None:
-        st.error("❌ Model tidak dapat dimuat")
-        st.stop()
-    
-    st.markdown('<div class="upload-box">📤 Upload gambar daun herbal</div>', unsafe_allow_html=True)
-    
-    uploaded = st.file_uploader("Upload Gambar", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-    
+    with col1:
+        model_choice = st.selectbox("Pilih Model YOLO", MODEL_PATHS.keys())
+        model = load_model(MODEL_PATHS[model_choice])
+
+    uploaded = st.file_uploader("Upload gambar daun", ["jpg", "jpeg", "png"])
+    camera = st.camera_input("Atau ambil foto langsung")
+
+    image = None
     if uploaded:
         image = Image.open(uploaded).convert("RGB")
+    elif camera:
+        image = Image.open(camera).convert("RGB")
+
+    if image:
+        with st.spinner("🔄 Mendeteksi daun herbal..."):
+            image_box, detections, infer_time = detect_and_draw(model, image.copy())
+
+        st.markdown("""
+        <div class="card">
+            <h3>Hasil Deteksi</h3>
+        </div>
+        """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### Gambar Asli")
-            st.image(image, use_container_width=True)
-        
-        with st.spinner("🔄 Mendeteksi..."):
-            result_img, detections, infer_time = detect_and_draw(model, image.copy())
-        
-        with col2:
-            st.markdown("### Hasil Deteksi")
-            st.image(result_img, use_container_width=True)
-        
+        st.image(image_box, use_container_width=True)
         st.success(f"✅ Deteksi selesai dalam {infer_time:.3f} detik")
-        
+
         if detections:
-            unique_detections = remove_duplicate_detections(detections)
-            
             st.markdown("---")
-            st.markdown("### 📋 Nama Daun yang Terdeteksi")
+            st.markdown("### 📋 Detail Deteksi")
             
-            for idx, d in enumerate(unique_detections, 1):
-                st.markdown(f"""
-                <div style="background: white; padding: 1.5rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <h4 style="color: #047857; margin: 0;">🌿 {d['name']}</h4>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                col1, col2 = st.columns([1, 2])
-                
-                with col1:
-                    if d['gambar']:
-                        try:
-                            st.image(d['gambar'], use_container_width=True)
-                        except:
-                            st.info("📷 Gambar tidak tersedia")
-                
-                with col2:
-                    if d['components']:
-                        st.markdown("**🧪 Komponen:**")
-                        st.write(", ".join(d['components']))
+            for idx, d in enumerate(detections, 1):
+                with st.expander(f"🌿 {d['name']} - Confidence: {d['confidence']}%", expanded=True):
+                    col1, col2 = st.columns([1, 2])
                     
-                    if d['benefits']:
-                        st.markdown("**💊 Manfaat:**")
-                        st.write(", ".join(d['benefits']))
+                    with col1:
+                        if d['gambar']:
+                            try:
+                                st.image(d['gambar'], caption=d['name'], use_container_width=True)
+                            except:
+                                st.info("Gambar tidak tersedia")
                     
-                    if d['recipes']:
-                        st.markdown("**📖 Resep Pengobatan:**")
-                        for benefit, recipe in d['recipes'].items():
-                            if st.button(f"📋 Resep: {benefit}", key=f"upl_{d['name']}_{benefit}_{idx}"):
-                                st.info(f"**Resep untuk {benefit}**")
-                                st.markdown("**🥣 Bahan:**")
+                    with col2:
+                        st.markdown(f"**Tingkat Kepercayaan:** `{d['confidence']}%`")
+                        
+                        if d['components']:
+                            st.markdown("**🧪 Kandungan Kimia:**")
+                            st.write(", ".join(d['components']))
+                        
+                        if d['benefits']:
+                            st.markdown("**💊 Manfaat Kesehatan:**")
+                            for benefit in d['benefits']:
+                                st.write(f"• {benefit}")
+                        
+                        if d['recipes']:
+                            st.markdown("**📖 Resep Pengobatan:**")
+                            for benefit, recipe in d['recipes'].items():
+                                st.markdown(f"**{benefit}:**")
+                                
+                                st.markdown("*Bahan:*")
                                 for bahan in recipe['bahan']:
-                                    st.write(f"• {bahan}")
-                                st.markdown("**👨‍🍳 Langkah:**")
+                                    st.write(f"  • {bahan}")
+                                
+                                st.markdown("*Langkah:*")
                                 for i, langkah in enumerate(recipe['langkah'], 1):
-                                    st.write(f"{i}. {langkah}")
-                
-                st.markdown("---")
+                                    st.write(f"  {i}. {langkah}")
+                                
+                                st.markdown("---")
+        else:
+            st.warning("⚠️ Tidak ada daun herbal yang terdeteksi")
 
 # =====================================================
-# REKOMENDASI
+# DETEKSI WEBCAM
+# =====================================================
+elif menu == "📸 Deteksi Webcam":
+    st.title("📸 Deteksi Daun Herbal Real-time")
+    
+    st.markdown("""
+    <div class="card">
+        <h3>Deteksi menggunakan Webcam</h3>
+        <p>Klik tombol di bawah untuk memulai deteksi real-time menggunakan webcam Anda.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    model_choice = st.selectbox("Pilih Model YOLO", MODEL_PATHS.keys(), key="webcam_model")
+    model = load_model(MODEL_PATHS[model_choice])
+    
+    if st.button("🎥 Mulai Deteksi Webcam"):
+        detect_webcam()
+    
+    st.info("💡 **Tips:** Pastikan pencahayaan cukup dan daun berada dalam jarak yang jelas dari kamera.")
+
+# =====================================================
+# REKOMENDASI MANFAAT
 # =====================================================
 elif menu == "💊 Rekomendasi Manfaat":
-    st.title("💊 Rekomendasi Daun Herbal")
+    st.title("💊 Rekomendasi Berdasarkan Manfaat")
     
     st.markdown("""
     <div class="card">
         <h3>Cari Daun Herbal Berdasarkan Manfaat</h3>
-        <p>Masukkan gejala atau kondisi kesehatan</p>
+        <p>Masukkan gejala atau kondisi kesehatan yang ingin Anda obati (contoh: batuk, demam, diabetes)</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        query = st.text_input("", placeholder="Ketik gejala atau penyakit...", label_visibility="collapsed")
-    with col2:
-        search_btn = st.button("🔍 Cari", use_container_width=True)
-    
-    if query or search_btn:
+
+    query = st.text_input("🔍 Masukkan manfaat yang dicari:", placeholder="Contoh: batuk, demam, diabetes")
+
+    if query:
         results = []
         for leaf, info in class_info.items():
             if any(query.lower() in b.lower() for b in info.get("benefits", [])):
-                results.append({"name": leaf, "info": info})
+                results.append({
+                    "name": leaf,
+                    "info": info
+                })
         
         if results:
-            st.success(f"✅ Ditemukan {len(results)} rekomendasi daun untuk \"{query}\"")
+            st.success(f"✅ Ditemukan {len(results)} daun herbal untuk '{query}'")
             st.markdown("---")
             
             for idx, result in enumerate(results, 1):
-                st.markdown(f"""
-                <div style="background: white; padding: 2rem; border-radius: 16px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <h4 style="color: #047857;">🌿 {result['name']}</h4>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                col1, col2 = st.columns([1, 2])
-                
-                with col1:
-                    if result['info'].get('gambar'):
-                        try:
-                            st.image(result['info']['gambar'], use_container_width=True)
-                        except:
-                            st.info("📷 Gambar tidak tersedia")
-                
-                with col2:
-                    if result['info'].get('components'):
-                        st.markdown("**🧪 Komponen:**")
-                        st.write(", ".join(result['info']['components']))
+                with st.expander(f"🌿 {result['name']}", expanded=True):
+                    col1, col2 = st.columns([1, 2])
                     
-                    if result['info'].get('benefits'):
-                        st.markdown("**💊 Manfaat:**")
-                        st.write(", ".join(result['info']['benefits']))
+                    with col1:
+                        if result['info'].get('gambar'):
+                            try:
+                                st.image(result['info']['gambar'], caption=result['name'], use_container_width=True)
+                            except:
+                                st.info("Gambar tidak tersedia")
                     
-                    if result['info'].get('recipes'):
-                        st.markdown("**📖 Resep Pengobatan:**")
-                        for benefit, recipe in result['info']['recipes'].items():
-                            if st.button(f"📋 {benefit}", key=f"rec_{result['name']}_{benefit}_{idx}"):
-                                st.info(f"**Resep untuk {benefit}**")
-                                st.markdown("**🥣 Bahan-bahan:**")
+                    with col2:
+                        if result['info'].get('components'):
+                            st.markdown("**🧪 Kandungan:**")
+                            st.write(", ".join(result['info']['components']))
+                        
+                        if result['info'].get('benefits'):
+                            st.markdown("**💊 Manfaat:**")
+                            for benefit in result['info']['benefits']:
+                                st.write(f"• {benefit}")
+                        
+                        if result['info'].get('recipes'):
+                            st.markdown("**📖 Resep Pengobatan:**")
+                            for benefit, recipe in result['info']['recipes'].items():
+                                st.markdown(f"**{benefit}:**")
+                                
+                                st.markdown("*Bahan:*")
                                 for bahan in recipe.get('ingredients', []):
-                                    st.write(f"• {bahan}")
-                                st.markdown("**👨‍🍳 Cara Membuat:**")
+                                    st.write(f"  • {bahan}")
+                                
+                                st.markdown("*Langkah:*")
                                 for i, langkah in enumerate(recipe.get('steps', []), 1):
-                                    st.write(f"{i}. {langkah}")
-                
-                st.markdown("---")
+                                    st.write(f"  {i}. {langkah}")
+                                
+                                st.markdown("---")
         else:
-            st.warning(f"⚠️ Tidak ditemukan rekomendasi untuk \"{query}\"")
-            st.info("💡 Coba: batuk, demam, diabetes, hipertensi, kolesterol")
+            st.warning(f"⚠️ Tidak ditemukan daun herbal untuk manfaat '{query}'")
+            st.info("💡 Coba kata kunci lain seperti: batuk, demam, diabetes, hipertensi, kolesterol")
 
 # =====================================================
 # FOOTER
