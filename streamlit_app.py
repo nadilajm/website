@@ -32,7 +32,7 @@ CLASS_NAMES = yaml_data.get("names", [])
 CLASS_INFO = yaml_data.get("info", {})
 
 # =====================================================
-# LOAD YOLO (LAZY + CACHE)
+# LOAD YOLO (LAZY)
 # =====================================================
 @st.cache_resource
 def load_model(path):
@@ -46,24 +46,57 @@ MODEL_PATHS = {
 }
 
 # =====================================================
-# SIDEBAR
+# WARNA PER KELAS (AUTO GENERATE)
 # =====================================================
-st.sidebar.title("🌿 MENU")
-menu = st.sidebar.radio(
-    "Navigasi",
-    ["🏠 Beranda", "📷 Deteksi Gambar", "🎥 Deteksi Webcam", "💊 Rekomendasi Manfaat"]
-)
+def generate_colors(n):
+    np.random.seed(42)
+    return [
+        tuple(int(c) for c in np.random.randint(0, 255, 3))
+        for _ in range(n)
+    ]
+
+CLASS_COLORS = generate_colors(len(CLASS_NAMES))
 
 # =====================================================
-# FUNGSI DETEKSI GAMBAR (NO PIL DRAW)
+# DRAW LABEL (NUMPY + OPENCV)
+# =====================================================
+def draw_label(img, text, x, y, color):
+    import cv2
+
+    (w, h), _ = cv2.getTextSize(
+        text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+    )
+
+    cv2.rectangle(
+        img,
+        (x, y - h - 8),
+        (x + w + 6, y),
+        color,
+        -1
+    )
+
+    cv2.putText(
+        img,
+        text,
+        (x + 3, y - 5),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        (0, 0, 0),
+        2
+    )
+
+# =====================================================
+# DETEKSI
 # =====================================================
 def run_detection(image_np, model):
+    import cv2
+
     start = time.time()
     results = model.predict(image_np, verbose=False)
     infer_time = time.time() - start
 
-    detections = []
     output_img = image_np.copy()
+    detections = []
 
     for r in results:
         if r.boxes is None:
@@ -78,6 +111,7 @@ def run_detection(image_np, model):
                 continue
 
             name = CLASS_NAMES[cls_id]
+            color = CLASS_COLORS[cls_id]
             info = CLASS_INFO.get(name, {})
 
             detections.append({
@@ -88,13 +122,28 @@ def run_detection(image_np, model):
                 "gambar": info.get("gambar", "")
             })
 
-            # draw bbox manual via numpy
-            output_img[y1:y1+2, x1:x2] = [0, 255, 0]
-            output_img[y2:y2+2, x1:x2] = [0, 255, 0]
-            output_img[y1:y2, x1:x1+2] = [0, 255, 0]
-            output_img[y1:y2, x2:x2+2] = [0, 255, 0]
+            # bounding box
+            cv2.rectangle(
+                output_img,
+                (x1, y1),
+                (x2, y2),
+                color,
+                2
+            )
+
+            label = f"{name} {conf:.1f}%"
+            draw_label(output_img, label, x1, y1, color)
 
     return output_img, detections, infer_time
+
+# =====================================================
+# SIDEBAR
+# =====================================================
+st.sidebar.title("🌿 MENU")
+menu = st.sidebar.radio(
+    "Navigasi",
+    ["🏠 Beranda", "📷 Deteksi Gambar", "🎥 Deteksi Webcam", "💊 Rekomendasi Manfaat"]
+)
 
 # =====================================================
 # BERANDA
@@ -103,10 +152,10 @@ if menu == "🏠 Beranda":
     st.markdown("## 🌿 HerbaSmartAI")
     st.info(
         "Aplikasi deteksi daun herbal berbasis **YOLO**.\n\n"
-        "Fitur:\n"
-        "- Deteksi gambar\n"
-        "- Deteksi webcam (local)\n"
-        "- Rekomendasi manfaat herbal"
+        "✔ Bounding box berwarna per kelas\n"
+        "✔ Nama daun & confidence\n"
+        "✔ Jumlah daun terdeteksi\n"
+        "✔ Mode gambar & webcam"
     )
 
 # =====================================================
@@ -135,6 +184,7 @@ elif menu == "📷 Deteksi Gambar":
 
         st.image(out_img, use_container_width=True)
         st.success(f"⏱️ Inferensi: {infer_time:.3f} detik")
+        st.info(f"📊 Total daun terdeteksi: **{len(detections)}**")
 
         for d in detections:
             with st.expander(f"🌿 {d['name']} ({d['confidence']}%)"):
@@ -166,6 +216,7 @@ elif menu == "🎥 Deteksi Webcam":
 
     run = st.checkbox("▶️ Aktifkan Webcam")
     frame_box = st.empty()
+    counter_box = st.empty()
 
     if run:
         cap = cv2.VideoCapture(0)
@@ -176,8 +227,10 @@ elif menu == "🎥 Deteksi Webcam":
                 break
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            out_img, _, _ = run_detection(rgb, model)
+            out_img, detections, _ = run_detection(rgb, model)
+
             frame_box.image(out_img, channels="RGB", use_container_width=True)
+            counter_box.info(f"📊 Daun terdeteksi: **{len(detections)}**")
 
         cap.release()
 
