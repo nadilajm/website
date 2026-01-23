@@ -203,57 +203,45 @@ elif menu == "📷 Deteksi Gambar":
 # DETEKSI WEBCAM
 # =====================================================
 elif menu == "🎥 Deteksi Webcam":
-    st.title("🎥 Deteksi Webcam (Real-Time)")
+    st.title("🎥 Deteksi Webcam")
 
-    if IS_CLOUD:
-        st.warning("🚫 Webcam tidak tersedia di Streamlit Cloud")
-        st.stop()
-
-    import cv2
+    st.info(
+        "Webcam berjalan menggunakan **Streamlit Camera Input** "
+        "(frame-by-frame, stabil, dan aman untuk deployment)."
+    )
 
     yolo_choice = st.selectbox(
         "⚙️ Pilih Varian YOLO",
         list(MODEL_PATHS.keys())
     )
-
     model = load_model(MODEL_PATHS[yolo_choice])
 
-    run = st.checkbox("▶️ Aktifkan Webcam")
-    frame_box = st.empty()
+    camera_frame = st.camera_input("📸 Ambil frame dari webcam")
 
-    if run:
-        cap = cv2.VideoCapture(0)
+    if camera_frame:
+        image = Image.open(camera_frame).convert("RGB")
 
-        while run:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        with st.spinner("🔍 Mendeteksi dari webcam..."):
+            result_img, detections, infer_time = detect_image(
+                image.copy(), model
+            )
 
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = model.predict(rgb, verbose=False)
+        st.image(result_img, use_container_width=True)
+        st.success(f"⏱️ Waktu inferensi: {infer_time:.3f} detik")
+        st.info(f"📊 Jumlah daun terdeteksi: {len(detections)}")
 
-            count = 0
-            for r in results:
-                if r.boxes is None:
-                    continue
-                for i, box in enumerate(r.boxes.xyxy):
-                    x1, y1, x2, y2 = map(int, box)
-                    cls_id = int(r.boxes.cls[i])
-                    name   = CLASS_NAMES[cls_id]
-                    color  = COLOR_MAP[name]
+        for d in detections:
+            info = d["info"]
+            with st.expander(f"🌿 {d['name']} ({d['confidence']}%)"):
+                st.markdown("**🧪 Kandungan:**")
+                st.write(", ".join(info.get("components", [])))
 
-                    cv2.rectangle(rgb, (x1, y1), (x2, y2), color, 2)
-                    cv2.putText(
-                        rgb, name, (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.6, color, 2
-                    )
-                    count += 1
+                st.markdown("**💊 Manfaat:**")
+                for b in info.get("benefits", []):
+                    st.write(f"- {b}")
 
-            frame_box.image(rgb, channels="RGB", use_container_width=True)
-            st.caption(f"📊 Daun terdeteksi: {count}")
-
-        cap.release()
+                if info.get("recipes"):
+                    render_recipes(info["recipes"])
 
 # =====================================================
 # REKOMENDASI MANFAAT
