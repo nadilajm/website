@@ -1,13 +1,13 @@
 # =====================================================
-# HERBASMARTAI - STREAMLIT APP (FINAL SIDANG VERSION)
+# HERBASMARTAI - FINAL STREAMLIT APP (SIDANG VERSION)
 # =====================================================
 
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
 import yaml
 import time
 import os
-import numpy as np
+import random
 
 # =====================================================
 # PAGE CONFIG
@@ -19,34 +19,37 @@ st.set_page_config(
 )
 
 # =====================================================
-# CEK LINGKUNGAN (WEB / CLOUD)
+# ENV CHECK
 # =====================================================
 IS_CLOUD = "STREAMLIT_CLOUD" in os.environ
 
 # =====================================================
-# LOAD YAML DATA (ROBUST PATH)
+# LOAD YAML DATA
 # =====================================================
 @st.cache_data
 def load_yaml():
-    paths = [
-        "data-baru.yaml",
-        "./data-baru.yaml",
-        "data/data-baru.yaml"
-    ]
-    for p in paths:
-        if os.path.exists(p):
-            with open(p, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f)
+    with open("data-baru.yaml", "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
-    st.error("❌ File data-baru.yaml tidak ditemukan")
-    st.stop()
-
-yaml_data = load_yaml()
+yaml_data   = load_yaml()
 CLASS_NAMES = yaml_data["names"]
 CLASS_INFO  = yaml_data["info"]
 
 # =====================================================
-# LOAD YOLO MODEL (LAZY & AMAN)
+# COLOR MAP (BBOX WARNA TIAP KELAS)
+# =====================================================
+random.seed(42)
+COLOR_MAP = {
+    name: (
+        random.randint(50, 255),
+        random.randint(50, 255),
+        random.randint(50, 255),
+    )
+    for name in CLASS_NAMES
+}
+
+# =====================================================
+# LOAD YOLO MODEL (LAZY LOAD - AMAN CLOUD)
 # =====================================================
 @st.cache_resource
 def load_model(model_path):
@@ -54,73 +57,10 @@ def load_model(model_path):
     return YOLO(model_path)
 
 MODEL_PATHS = {
-    "YOLOv8 Nano": "models/bestnano.pt",
-    "YOLOv8 Small": "models/bestsmall.pt",
-    "YOLOv8 Medium": "models/yolo_medium.pt"
+    "YOLOv11 Nano"  : "models/bestnano.pt",
+    "YOLOv11 Small" : "models/bestsmall.pt",
+    "YOLOv11 Medium": "models/best_m.pt"
 }
-
-# =====================================================
-# WARNA BBOX TIAP KELAS
-# =====================================================
-np.random.seed(42)
-CLASS_COLORS = {
-    i: tuple(np.random.randint(0, 255, 3).tolist())
-    for i in range(len(CLASS_NAMES))
-}
-
-# =====================================================
-# FUNGSI DETEKSI GAMBAR
-# =====================================================
-def detect_image(model, image_pil):
-    import cv2
-
-    img = np.array(image_pil)
-    start = time.time()
-    results = model.predict(img, verbose=False)
-    infer_time = time.time() - start
-
-    detections = []
-    count = 0
-
-    for r in results:
-        if r.boxes is None:
-            continue
-
-        for i in range(len(r.boxes)):
-            x1, y1, x2, y2 = map(int, r.boxes.xyxy[i])
-            cls_id = int(r.boxes.cls[i])
-            conf = float(r.boxes.conf[i]) * 100
-
-            if cls_id >= len(CLASS_NAMES):
-                continue
-
-            name = CLASS_NAMES[cls_id]
-            color = CLASS_COLORS[cls_id]
-            info  = CLASS_INFO.get(name, {})
-
-            # draw bbox
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
-            cv2.putText(
-                img,
-                f"{name} {conf:.1f}%",
-                (x1, y1 - 8),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                color,
-                2
-            )
-
-            detections.append({
-                "name": name,
-                "confidence": round(conf, 2),
-                "components": info.get("components", []),
-                "benefits": info.get("benefits", []),
-                "recipes": info.get("recipes", {})
-            })
-
-            count += 1
-
-    return img, detections, count, infer_time
 
 # =====================================================
 # SIDEBAR
@@ -128,38 +68,103 @@ def detect_image(model, image_pil):
 st.sidebar.title("🌿 MENU")
 menu = st.sidebar.radio(
     "Navigasi",
-    ["Beranda", "Deteksi Gambar", "Deteksi Webcam", "Rekomendasi Manfaat"]
+    [
+        "🏠 Beranda",
+        "📷 Deteksi Gambar",
+        "🎥 Deteksi Webcam",
+        "💊 Rekomendasi Manfaat"
+    ]
 )
+
+# =====================================================
+# UTIL: RENDER RESEP (FIX FINAL)
+# =====================================================
+def render_recipes(recipes: dict):
+    st.markdown("### 🍵 Resep Tradisional")
+    for title, recipe in recipes.items():
+        st.markdown(f"**{title}**")
+
+        if recipe.get("ingredients"):
+            st.markdown("**Bahan:**")
+            for item in recipe["ingredients"]:
+                st.write(f"- {item}")
+
+        if recipe.get("steps"):
+            st.markdown("**Cara Pembuatan:**")
+            for i, step in enumerate(recipe["steps"], 1):
+                st.write(f"{i}. {step}")
+
+        st.markdown("---")
+
+# =====================================================
+# IMAGE DETECTION
+# =====================================================
+def detect_image(image: Image.Image, model):
+    start = time.time()
+    results = model.predict(image, verbose=False)
+    infer_time = time.time() - start
+
+    draw = ImageDraw.Draw(image)
+    detections = []
+
+    for r in results:
+        if r.boxes is None:
+            continue
+
+        for i, box in enumerate(r.boxes.xyxy):
+            x1, y1, x2, y2 = map(int, box)
+            cls_id = int(r.boxes.cls[i])
+            conf   = float(r.boxes.conf[i]) * 100
+            name   = CLASS_NAMES[cls_id]
+
+            color = COLOR_MAP[name]
+
+            info = CLASS_INFO.get(name, {})
+
+            detections.append({
+                "name": name,
+                "confidence": round(conf, 2),
+                "info": info
+            })
+
+            draw.rectangle([x1, y1, x2, y2], outline=color, width=3)
+            draw.text(
+                (x1, y1 - 15),
+                f"{name} {conf:.1f}%",
+                fill=color
+            )
+
+    return image, detections, infer_time
 
 # =====================================================
 # BERANDA
 # =====================================================
-if menu == "Beranda":
+if menu == "🏠 Beranda":
     st.title("🌿 HerbaSmartAI")
-    st.markdown("""
-    **HerbaSmartAI** adalah sistem deteksi daun herbal berbasis  
-    **Deep Learning (YOLOv8)** yang mampu:
-    - Mengidentifikasi jenis daun herbal
-    - Menampilkan manfaat & kandungan
-    - Memberikan resep tradisional
-    """)
+    st.info(
+        "Sistem **Deteksi Daun Herbal berbasis YOLO** "
+        "yang menampilkan **nama daun, kandungan, manfaat, "
+        "dan resep tradisional**."
+    )
 
 # =====================================================
 # DETEKSI GAMBAR
 # =====================================================
-elif menu == "Deteksi Gambar":
-    st.header("📷 Deteksi Daun Herbal")
+elif menu == "📷 Deteksi Gambar":
+    st.title("📷 Deteksi Daun Herbal")
 
-    model_choice = st.selectbox(
-        "Pilih Model YOLO",
-        MODEL_PATHS.keys()
+    yolo_choice = st.selectbox(
+        "⚙️ Pilih Varian YOLO",
+        list(MODEL_PATHS.keys())
     )
-    model = load_model(MODEL_PATHS[model_choice])
+
+    model = load_model(MODEL_PATHS[yolo_choice])
 
     uploaded = st.file_uploader(
         "Upload gambar daun",
-        ["jpg", "jpeg", "png"]
+        type=["jpg", "png", "jpeg"]
     )
+
     camera = st.camera_input("Atau ambil foto")
 
     image = None
@@ -170,62 +175,51 @@ elif menu == "Deteksi Gambar":
 
     if image:
         with st.spinner("🔍 Mendeteksi..."):
-            output, detections, count, infer_time = detect_image(model, image)
+            result_img, detections, infer_time = detect_image(
+                image.copy(), model
+            )
 
-        st.image(output, use_container_width=True)
-        st.success(f"🌱 Jumlah daun terdeteksi: **{count}**")
-        st.info(f"⏱️ Waktu inferensi: {infer_time:.3f} detik")
+        st.image(result_img, use_container_width=True)
+        st.success(f"⏱️ Waktu inferensi: {infer_time:.3f} detik")
+        st.info(f"📊 Jumlah daun terdeteksi: **{len(detections)}**")
 
         for d in detections:
+            info = d["info"]
             with st.expander(f"🌿 {d['name']} ({d['confidence']}%)"):
+                if info.get("gambar") and os.path.exists(info["gambar"]):
+                    st.image(info["gambar"], use_container_width=True)
+
                 st.markdown("**🧪 Kandungan:**")
-                st.write(", ".join(d["components"]))
+                st.write(", ".join(info.get("components", [])))
 
                 st.markdown("**💊 Manfaat:**")
-                for b in d["benefits"]:
+                for b in info.get("benefits", []):
                     st.write(f"- {b}")
 
                 if info.get("recipes"):
-                    st.markdown("### 🍵 Resep Tradisional")
-                
-                    for title, recipe in info["recipes"].items():
-                        st.markdown(f"**{title}**")
-                
-                        ingredients = recipe.get("ingredients", [])
-                        if ingredients:
-                            st.markdown("**Bahan:**")
-                            for item in ingredients:
-                                st.write(f"- {item}")
-                
-                        steps = recipe.get("steps", [])
-                        if steps:
-                            st.markdown("**Cara Pembuatan:**")
-                            for i, step in enumerate(steps, 1):
-                                st.write(f"{i}. {step}")
-                
-                        st.markdown("---")
-
+                    render_recipes(info["recipes"])
 
 # =====================================================
 # DETEKSI WEBCAM
 # =====================================================
-elif menu == "Deteksi Webcam":
-    st.header("🎥 Deteksi Real-Time")
+elif menu == "🎥 Deteksi Webcam":
+    st.title("🎥 Deteksi Webcam (Real-Time)")
 
     if IS_CLOUD:
-        st.warning("🚫 Webcam tidak didukung di Streamlit Cloud")
+        st.warning("🚫 Webcam tidak tersedia di Streamlit Cloud")
         st.stop()
 
     import cv2
 
-    model_choice = st.selectbox(
-        "Pilih Model YOLO",
-        MODEL_PATHS.keys()
+    yolo_choice = st.selectbox(
+        "⚙️ Pilih Varian YOLO",
+        list(MODEL_PATHS.keys())
     )
-    model = load_model(MODEL_PATHS[model_choice])
+
+    model = load_model(MODEL_PATHS[yolo_choice])
 
     run = st.checkbox("▶️ Aktifkan Webcam")
-    frame_placeholder = st.empty()
+    frame_box = st.empty()
 
     if run:
         cap = cv2.VideoCapture(0)
@@ -238,32 +232,36 @@ elif menu == "Deteksi Webcam":
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = model.predict(rgb, verbose=False)
 
+            count = 0
             for r in results:
                 if r.boxes is None:
                     continue
-                for i in range(len(r.boxes)):
-                    x1, y1, x2, y2 = map(int, r.boxes.xyxy[i])
+                for i, box in enumerate(r.boxes.xyxy):
+                    x1, y1, x2, y2 = map(int, box)
                     cls_id = int(r.boxes.cls[i])
-                    name = CLASS_NAMES[cls_id]
-                    color = CLASS_COLORS[cls_id]
+                    name   = CLASS_NAMES[cls_id]
+                    color  = COLOR_MAP[name]
 
                     cv2.rectangle(rgb, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(
-                        rgb, name, (x1, y1 - 8),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2
+                        rgb, name, (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6, color, 2
                     )
+                    count += 1
 
-            frame_placeholder.image(rgb, channels="RGB", use_container_width=True)
+            frame_box.image(rgb, channels="RGB", use_container_width=True)
+            st.caption(f"📊 Daun terdeteksi: {count}")
 
         cap.release()
 
 # =====================================================
 # REKOMENDASI MANFAAT
 # =====================================================
-elif menu == "Rekomendasi Manfaat":
-    st.header("💊 Cari Daun Berdasarkan Manfaat")
+elif menu == "💊 Rekomendasi Manfaat":
+    st.title("💊 Rekomendasi Daun Berdasarkan Manfaat")
 
-    query = st.text_input("Masukkan gejala (contoh: batuk, demam)")
+    query = st.text_input("Masukkan gejala (contoh: batuk, diabetes)")
 
     if query:
         found = False
@@ -271,6 +269,9 @@ elif menu == "Rekomendasi Manfaat":
             if any(query.lower() in b.lower() for b in info.get("benefits", [])):
                 found = True
                 with st.expander(f"🌿 {leaf}"):
+                    if info.get("gambar") and os.path.exists(info["gambar"]):
+                        st.image(info["gambar"], use_container_width=True)
+
                     st.markdown("**🧪 Kandungan:**")
                     st.write(", ".join(info.get("components", [])))
 
@@ -279,11 +280,7 @@ elif menu == "Rekomendasi Manfaat":
                         st.write(f"- {b}")
 
                     if info.get("recipes"):
-                        st.markdown("**🍵 Resep Tradisional:**")
-                        for k, v in info["recipes"].items():
-                            st.write(f"**{k.capitalize()}**:")
-                            for step in v:
-                                st.write(f"- {step}")
+                        render_recipes(info["recipes"])
 
         if not found:
             st.warning("❌ Tidak ditemukan daun untuk gejala tersebut")
