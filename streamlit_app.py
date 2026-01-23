@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw
 import yaml
 import time
 import os
+import numpy as np
 
 # =====================================================
 # PAGE CONFIG
@@ -27,15 +28,15 @@ def load_yaml():
         return yaml.safe_load(f)
 
 yaml_data = load_yaml()
-CLASS_NAMES = yaml_data["names"]
-CLASS_INFO = yaml_data["info"]
+CLASS_NAMES = yaml_data.get("names", [])
+CLASS_INFO = yaml_data.get("info", {})
 
 # =====================================================
-# LAZY LOAD YOLO MODEL (INI KUNCI FIX ERROR)
+# LAZY LOAD YOLO MODEL (ANTI CRASH)
 # =====================================================
 @st.cache_resource
 def load_model(model_path):
-    from ultralytics import YOLO   # ⬅️ LAZY IMPORT
+    from ultralytics import YOLO
     return YOLO(model_path)
 
 MODEL_PATHS = {
@@ -45,7 +46,7 @@ MODEL_PATHS = {
 }
 
 # =====================================================
-# SIDEBAR NAVIGATION (TETAP)
+# SIDEBAR
 # =====================================================
 st.sidebar.title("🌿 MENU")
 menu = st.sidebar.radio(
@@ -72,6 +73,10 @@ def detect_image(image: Image.Image, model):
             x1, y1, x2, y2 = map(int, box)
             cls_id = int(r.boxes.cls[i])
             conf = float(r.boxes.conf[i]) * 100
+
+            if cls_id >= len(CLASS_NAMES):
+                continue
+
             name = CLASS_NAMES[cls_id]
             info = CLASS_INFO.get(name, {})
 
@@ -85,7 +90,7 @@ def detect_image(image: Image.Image, model):
             })
 
             draw.rectangle([x1, y1, x2, y2], outline="green", width=3)
-            draw.text((x1, y1 - 20), f"{name} {conf:.1f}%", fill="green")
+            draw.text((x1, y1 - 18), f"{name} {conf:.1f}%", fill="green")
 
     return image, detections, infer_time
 
@@ -94,11 +99,11 @@ def detect_image(image: Image.Image, model):
 # =====================================================
 if menu == "🏠 Beranda":
     st.markdown("## 🌿 HerbaSmartAI")
-    st.info("""
-    Sistem deteksi daun herbal berbasis **YOLO**
-    untuk menampilkan nama daun, kandungan,
-    manfaat, dan resep tradisional.
-    """)
+    st.info(
+        "Sistem deteksi daun herbal berbasis **YOLO** "
+        "untuk menampilkan nama daun, kandungan, manfaat, "
+        "dan rekomendasi tradisional."
+    )
 
 # =====================================================
 # DETEKSI GAMBAR
@@ -111,7 +116,12 @@ elif menu == "📷 Deteksi Gambar":
         list(MODEL_PATHS.keys())
     )
 
-    model = load_model(MODEL_PATHS[yolo_choice])
+    try:
+        model = load_model(MODEL_PATHS[yolo_choice])
+    except Exception:
+        st.error("❌ Model gagal dimuat")
+        st.stop()
+
     st.caption(f"Model aktif: **{yolo_choice}**")
 
     uploaded = st.file_uploader("Upload gambar daun", type=["jpg", "png", "jpeg"])
@@ -132,14 +142,17 @@ elif menu == "📷 Deteksi Gambar":
 
         for d in detections:
             with st.expander(f"🌿 {d['name']} ({d['confidence']}%)"):
-                if d["gambar"]:
-                    st.image(d["gambar"], use_container_width=True)
+
+                gambar = d.get("gambar")
+                if isinstance(gambar, str):
+                    if os.path.exists(gambar) or gambar.startswith("http"):
+                        st.image(gambar, use_container_width=True)
 
                 st.markdown("**🧪 Kandungan:**")
-                st.write(", ".join(d["components"]))
+                st.write(", ".join(d.get("components", [])))
 
                 st.markdown("**💊 Manfaat:**")
-                for b in d["benefits"]:
+                for b in d.get("benefits", []):
                     st.write(f"- {b}")
 
 # =====================================================
@@ -152,15 +165,18 @@ elif menu == "🎥 Deteksi Webcam":
         st.warning("🚫 Webcam tidak didukung di Streamlit Cloud")
         st.stop()
 
-    import cv2  # ⬅️ BARU BOLEH DI SINI
+    import cv2
 
     yolo_choice = st.selectbox(
         "⚙️ Pilih Varian YOLO",
         list(MODEL_PATHS.keys())
     )
 
-    model = load_model(MODEL_PATHS[yolo_choice])
-    st.caption(f"Model aktif: **{yolo_choice}**")
+    try:
+        model = load_model(MODEL_PATHS[yolo_choice])
+    except Exception:
+        st.error("❌ Model gagal dimuat")
+        st.stop()
 
     run = st.checkbox("▶️ Aktifkan Webcam")
     frame_slot = st.empty()
@@ -182,7 +198,10 @@ elif menu == "🎥 Deteksi Webcam":
                 for i, box in enumerate(r.boxes.xyxy):
                     x1, y1, x2, y2 = map(int, box)
                     cls_id = int(r.boxes.cls[i])
+                    if cls_id >= len(CLASS_NAMES):
+                        continue
                     name = CLASS_NAMES[cls_id]
+
                     cv2.rectangle(rgb, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(
                         rgb, name, (x1, y1 - 10),
@@ -207,8 +226,11 @@ elif menu == "💊 Rekomendasi Manfaat":
             if any(query.lower() in b.lower() for b in info.get("benefits", [])):
                 found = True
                 with st.expander(f"🌿 {leaf}"):
-                    if info.get("gambar"):
-                        st.image(info["gambar"], use_container_width=True)
+
+                    gambar = info.get("gambar")
+                    if isinstance(gambar, str):
+                        if os.path.exists(gambar) or gambar.startswith("http"):
+                            st.image(gambar, use_container_width=True)
 
                     st.write("**Kandungan:**", ", ".join(info.get("components", [])))
                     st.write("**Manfaat:**")
